@@ -4,6 +4,7 @@ import (
 	"context"
 	"log"
 	"net"
+	"time"
 
 	"github.com/faruqfadhil/learn-go-docs/grpc-go-course/calculator/calculatorpb"
 	"google.golang.org/grpc"
@@ -16,6 +17,24 @@ func (*server) Calculate(ctx context.Context, req *calculatorpb.CalculatorReques
 		Result: req.GetCalculating().GetNumbOne() + req.GetCalculating().GetNumbTwo(),
 	}
 	return res, nil
+}
+
+func (*server) PrimeNumberDecomp(req *calculatorpb.PrimeNumberDecompRequest, stream calculatorpb.CalculatorService_PrimeNumberDecompServer) error {
+	k := int32(2)
+	N := req.GetPrimeNumber().GetPrime()
+	for N > 1 {
+		if N%k == 0 {
+			res := &calculatorpb.PrimeNumberDecompResponse{
+				Result: k,
+			}
+			stream.Send(res)
+			time.Sleep(1000 * time.Millisecond)
+			N = N / k
+		} else {
+			k = k + 1
+		}
+	}
+	return nil
 }
 
 func main() {
