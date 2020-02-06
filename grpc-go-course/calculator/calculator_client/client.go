@@ -10,6 +10,10 @@ import "context"
 
 import "io"
 
+import "fmt"
+
+import "time"
+
 func main() {
 	cc, err := grpc.Dial("localhost:50051", grpc.WithInsecure())
 
@@ -22,7 +26,8 @@ func main() {
 	c := calculatorpb.NewCalculatorServiceClient(cc)
 
 	// doUnary(c)
-	doServerStreaming(c)
+	// doServerStreaming(c)
+	doClientStreaming(c)
 }
 
 func doUnary(c calculatorpb.CalculatorServiceClient) {
@@ -60,4 +65,38 @@ func doServerStreaming(c calculatorpb.CalculatorServiceClient) {
 		}
 		log.Printf("response : %v", msg.GetResult())
 	}
+}
+
+func doClientStreaming(c calculatorpb.CalculatorServiceClient) {
+	requests := []*calculatorpb.ComputeAverageRequest{
+		&calculatorpb.ComputeAverageRequest{
+			Number: 1,
+		},
+		&calculatorpb.ComputeAverageRequest{
+			Number: 2,
+		},
+		&calculatorpb.ComputeAverageRequest{
+			Number: 3,
+		},
+		&calculatorpb.ComputeAverageRequest{
+			Number: 4,
+		},
+	}
+
+	stream, err := c.ComputeAverage(context.Background())
+	if err != nil {
+		log.Fatalf("error while calling compute avg %v", err)
+	}
+
+	for _, req := range requests {
+		fmt.Printf("sending req : %v\n", req)
+		stream.Send(req)
+		time.Sleep(1000 * time.Millisecond)
+	}
+
+	msg, err := stream.CloseAndRecv()
+	if err != nil {
+		log.Fatalf("error while receiving response from compute avg %v", err)
+	}
+	fmt.Printf("response : %v\n", msg)
 }

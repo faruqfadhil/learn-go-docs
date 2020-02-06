@@ -12,6 +12,8 @@ import "context"
 
 import "io"
 
+import "time"
+
 func main() {
 	fmt.Println("hello Iam client")
 	cc, err := grpc.Dial("localhost:50051", grpc.WithInsecure())
@@ -25,7 +27,8 @@ func main() {
 	c := greetpb.NewGreetServiceClient(cc)
 
 	// doUnary(c)
-	doServerStreaming(c)
+	// doServerStreaming(c)
+	doClientStreaming(c)
 }
 
 func doUnary(c greetpb.GreetServiceClient) {
@@ -66,5 +69,43 @@ func doServerStreaming(c greetpb.GreetServiceClient) {
 		}
 		log.Printf("response : %v", msg.GetResult())
 	}
+
+}
+
+func doClientStreaming(c greetpb.GreetServiceClient) {
+	requests := []*greetpb.LongGreetRequest{
+		&greetpb.LongGreetRequest{
+			Greeting: &greetpb.Greeting{
+				FirstName: "faruq",
+			},
+		},
+		&greetpb.LongGreetRequest{
+			Greeting: &greetpb.Greeting{
+				FirstName: "fadhil",
+			},
+		},
+		&greetpb.LongGreetRequest{
+			Greeting: &greetpb.Greeting{
+				FirstName: "marfuah",
+			},
+		},
+	}
+	stream, err := c.LongGreet(context.Background())
+	if err != nil {
+		log.Fatalf("error while calling logGreat %v", err)
+	}
+
+	for _, req := range requests {
+		fmt.Printf("sending req : %v\n", req)
+		stream.Send(req)
+		time.Sleep(1000 * time.Millisecond)
+
+	}
+
+	msg, err := stream.CloseAndRecv()
+	if err != nil {
+		log.Fatalf("error while receiving response from long greet %v", err)
+	}
+	fmt.Printf("response : %v\n", msg)
 
 }
