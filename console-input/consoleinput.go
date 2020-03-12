@@ -14,7 +14,8 @@ func main() {
 	// usingScan()
 	// usingScanLn()
 	// usingBufio()
-	intoSlice()
+	// intoIntSlice()
+	intoStringSlice()
 }
 
 func usingScanf() {
@@ -59,7 +60,7 @@ func usingBufio() {
 
 }
 
-func intoSlice() {
+func intoIntSlice() {
 	var n int
 	fmt.Scan(&n)
 	reader := bufio.NewReader(os.Stdin)
@@ -71,6 +72,16 @@ func intoSlice() {
 			anuInt = append(anuInt, i)
 		}
 		fmt.Println(anuInt)
+	}
+}
+
+func intoStringSlice() {
+	var n int
+	fmt.Scan(&n)
+	reader := bufio.NewReader(os.Stdin)
+	for i := 0; i < n; i++ {
+		text := strings.Split(readLine(reader), " ")
+		fmt.Println(text)
 	}
 }
 
