@@ -1,18 +1,15 @@
 package main
 
-import "fmt"
+import (
+	"context"
+	"fmt"
+	"io"
+	"log"
+	"time"
 
-import "google.golang.org/grpc"
-
-import "log"
-
-import "github.com/faruqfadhil/learn-go-docs/grpc-go-course/greet/greetpb"
-
-import "context"
-
-import "io"
-
-import "time"
+	"github.com/faruqfadhil/learn-go-docs/grpc-go-course/greet/greetpb"
+	"google.golang.org/grpc"
+)
 
 func main() {
 	fmt.Println("hello Iam client")
@@ -28,7 +25,8 @@ func main() {
 
 	// doUnary(c)
 	// doServerStreaming(c)
-	doClientStreaming(c)
+	// doClientStreaming(c)
+	doBidirectionalStreaming(c)
 }
 
 func doUnary(c greetpb.GreetServiceClient) {
@@ -107,5 +105,59 @@ func doClientStreaming(c greetpb.GreetServiceClient) {
 		log.Fatalf("error while receiving response from long greet %v", err)
 	}
 	fmt.Printf("response : %v\n", msg)
+}
+
+func doBidirectionalStreaming(c greetpb.GreetServiceClient) {
+	stream, err := c.GreetEveryone(context.Background())
+	if err != nil {
+		log.Fatalf("error while creatiing stream: %v", err)
+		return
+	}
+	requests := []*greetpb.GreetEveryoneRequest{
+		&greetpb.GreetEveryoneRequest{
+			Greeting: &greetpb.Greeting{
+				FirstName: "faruq",
+			},
+		},
+		&greetpb.GreetEveryoneRequest{
+			Greeting: &greetpb.Greeting{
+				FirstName: "fadhil",
+			},
+		},
+		&greetpb.GreetEveryoneRequest{
+			Greeting: &greetpb.Greeting{
+				FirstName: "marfuah",
+			},
+		},
+	}
+
+	waitChan := make(chan struct{})
+	go func() {
+		for _, req := range requests {
+			fmt.Printf("Sending req:%v\n", req)
+			stream.Send(req)
+			time.Sleep(1 * time.Second)
+		}
+		stream.CloseSend()
+	}()
+
+	go func() {
+		for {
+			msg, err := stream.Recv()
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				log.Printf("Error while receive data: %v", err)
+				break
+			}
+			fmt.Printf("received : %v\n", msg.GetResult())
+
+		}
+		close(waitChan)
+
+	}()
+
+	<-waitChan
 
 }
