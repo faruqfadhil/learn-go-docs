@@ -9,6 +9,8 @@ import (
 
 	"github.com/faruqfadhil/learn-go-docs/grpc-go-course/calculator/calculatorpb"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
 )
 
 func main() {
@@ -25,7 +27,8 @@ func main() {
 	// doUnary(c)
 	// doServerStreaming(c)
 	// doClientStreaming(c)
-	doBidirectionalStreaming(c)
+	// doBidirectionalStreaming(c)
+	doErrorUnary(c)
 }
 
 func doUnary(c calculatorpb.CalculatorServiceClient) {
@@ -134,4 +137,31 @@ func doBidirectionalStreaming(c calculatorpb.CalculatorServiceClient) {
 		close(waitChan)
 	}()
 	<-waitChan
+}
+
+func doErrorUnary(c calculatorpb.CalculatorServiceClient) {
+	doErrorCall(c, 10)
+
+	doErrorCall(c, -2)
+}
+
+func doErrorCall(c calculatorpb.CalculatorServiceClient, n int32) {
+	res, err := c.SquareRoot(context.Background(), &calculatorpb.SquareRootRequest{
+		Number: n,
+	})
+	if err != nil {
+		respErr, ok := status.FromError(err)
+		if ok {
+			fmt.Println(respErr.Message())
+			fmt.Println(respErr.Code())
+			if respErr.Code() == codes.InvalidArgument {
+				fmt.Println("we probably send a negative number !")
+			}
+			return
+		} else {
+			log.Fatalf("Big error calling SquareRoot:%v", err)
+		}
+	}
+
+	fmt.Println("result = ", res.GetResult())
 }
