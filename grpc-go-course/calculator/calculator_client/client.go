@@ -1,18 +1,15 @@
 package main
 
-import "google.golang.org/grpc"
+import (
+	"context"
+	"fmt"
+	"io"
+	"log"
+	"time"
 
-import "log"
-
-import "github.com/faruqfadhil/learn-go-docs/grpc-go-course/calculator/calculatorpb"
-
-import "context"
-
-import "io"
-
-import "fmt"
-
-import "time"
+	"github.com/faruqfadhil/learn-go-docs/grpc-go-course/calculator/calculatorpb"
+	"google.golang.org/grpc"
+)
 
 func main() {
 	cc, err := grpc.Dial("localhost:50051", grpc.WithInsecure())
@@ -27,7 +24,8 @@ func main() {
 
 	// doUnary(c)
 	// doServerStreaming(c)
-	doClientStreaming(c)
+	// doClientStreaming(c)
+	doBidirectionalStreaming(c)
 }
 
 func doUnary(c calculatorpb.CalculatorServiceClient) {
@@ -99,4 +97,41 @@ func doClientStreaming(c calculatorpb.CalculatorServiceClient) {
 		log.Fatalf("error while receiving response from compute avg %v", err)
 	}
 	fmt.Printf("response : %v\n", msg)
+}
+
+func doBidirectionalStreaming(c calculatorpb.CalculatorServiceClient) {
+	reqs := []int32{1, 9, 2, 3, 16, 4, 32}
+	stream, err := c.FindMaximum(context.Background())
+	if err != nil {
+		log.Fatalf("error while creating stream:%v", err)
+	}
+
+	waitChan := make(chan struct{})
+
+	go func() {
+		for _, req := range reqs {
+			fmt.Println("sending req: ", req)
+			stream.Send(&calculatorpb.FindMaximumRequest{
+				Number: req,
+			})
+			time.Sleep(1 * time.Second)
+		}
+		stream.CloseSend()
+	}()
+
+	go func() {
+		for {
+			msg, err := stream.Recv()
+			if err == io.EOF {
+				break
+			}
+			if err != nil {
+				log.Fatalf("error while receive data:%v", err)
+				break
+			}
+			fmt.Println("received: ", msg.GetResult())
+		}
+		close(waitChan)
+	}()
+	<-waitChan
 }
