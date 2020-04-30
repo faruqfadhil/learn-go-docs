@@ -61,6 +61,46 @@ func (*server) CreateBlog(ctx context.Context, req *blogpb.CreateBlogRequest) (*
 	}, err
 }
 
+func (*server) ReadBlog(ctx context.Context, req *blogpb.ReadBlogRequest) (*blogpb.ReadBlogResponse, error) {
+	fmt.Println("Read request")
+	blogID := req.GetBlogId()
+	sqlStmt := `Select * from blog_item where id=?`
+	blog := db.QueryRow(sqlStmt, blogID)
+	blogObj := blogItem{}
+	var (
+		id       string
+		authorID string
+		title    string
+		content  string
+	)
+	switch err := blog.Scan(&id, &authorID, &title, &content); err {
+	case sql.ErrNoRows:
+		return nil, status.Errorf(
+			codes.NotFound,
+			fmt.Sprintf("cannot found blog with specified ID"),
+		)
+	case nil:
+		blogObj.ID = id
+		blogObj.AuthorID = authorID
+		blogObj.Title = title
+		blogObj.Content = content
+	default:
+		return nil, status.Errorf(
+			codes.Internal,
+			fmt.Sprintf("Internal error: %v", err),
+		)
+	}
+
+	return &blogpb.ReadBlogResponse{
+		Blog: &blogpb.Blog{
+			Id:       blogObj.ID,
+			AuthorId: blogObj.AuthorID,
+			Title:    blogObj.Title,
+			Content:  blogObj.Content,
+		},
+	}, nil
+}
+
 func main() {
 	log.SetFlags(log.LstdFlags | log.Lshortfile)
 

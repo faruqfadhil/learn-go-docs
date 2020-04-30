@@ -21,7 +21,8 @@ func main() {
 
 	c := blogpb.NewBlogServiceClient(cc)
 
-	doUnary(c)
+	// createBlog(c)
+	readBlog(c)
 	// doServerStreaming(c)
 	// doClientStreaming(c)
 	// doBidirectionalStreaming(c)
@@ -30,8 +31,7 @@ func main() {
 
 }
 
-func doUnary(c blogpb.BlogServiceClient) {
-	fmt.Println("starting to do unary RPC...")
+func createBlog(c blogpb.BlogServiceClient) {
 	req := &blogpb.CreateBlogRequest{
 		Blog: &blogpb.Blog{
 			Id:       "sas",
@@ -41,6 +41,17 @@ func doUnary(c blogpb.BlogServiceClient) {
 		},
 	}
 	res, err := c.CreateBlog(context.Background(), req)
+	if err != nil {
+		log.Fatalf("error while calling greet RPC: %v", err)
+	}
+	log.Printf("response from greet : %v", res.GetBlog())
+}
+
+func readBlog(c blogpb.BlogServiceClient) {
+	req := &blogpb.ReadBlogRequest{
+		BlogId: "sas",
+	}
+	res, err := c.ReadBlog(context.Background(), req)
 	if err != nil {
 		log.Fatalf("error while calling greet RPC: %v", err)
 	}
